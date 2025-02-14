@@ -27,8 +27,8 @@ class PostDeleteView(PostsEditMixin, LoginRequiredMixin, DeleteView):
         if self.request.user != post.author:
             return redirect("blog:index")
 
-        if not post.is_published and self.request.user != post.author:
-            raise Http404("Post not found or already removed.")
+        if not post.is_published:
+            return redirect("blog:profile", username=self.request.user.username)  # Перенаправление к профилю
 
         return super().delete(request, *args, **kwargs)
 
@@ -38,10 +38,12 @@ class PostUpdateView(PostsEditMixin, LoginRequiredMixin, UpdateView):
 
     def dispatch(self, request, *args, **kwargs):
         post = get_object_or_404(Post, pk=self.kwargs["pk"])
+
+        # Проверка, является ли текущий пользователь автором поста
         if self.request.user != post.author:
             return redirect("blog:post_detail", pk=self.kwargs["pk"])
 
-        # Исправление: если пост не опубликован, доступ только у автора
+        # Если пост не опубликован, доступ только у автора
         if not post.is_published and self.request.user != post.author:
             raise Http404("Post not found or already removed.")
 
@@ -187,18 +189,12 @@ class PostDetailView(PostsQuerySetMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
+        # Получаем комментарии с предварительной загрузкой авторов
+        post = self.get_object()
+        comments = post.comments.prefetch_related("author").all()
+
         context["form"] = CreateCommentForm()
-        context["comments"] = (
-            self.get_object().comments.prefetch_related("author").all()
-        )
+        context["comments"] = comments  # Добавляем комментарии в контекст
+
         return context
-
-    def get_queryset(self):
-        queryset = super().get_queryset().prefetch_related("comments")
-
-        if self.request.user.is_authenticated:
-            return queryset.filter(
-                Q(is_published=True) | Q(author=self.request.user)
-            )
-
-        return queryset.filter(is_published=True)
