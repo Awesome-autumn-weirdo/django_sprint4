@@ -9,8 +9,7 @@ from django.views.generic import (
     ListView,
     UpdateView,
 )
-from django.http import Http404
-from django.db.models import Q
+
 from .forms import CreateCommentForm, CreatePostForm
 from .models import Category, Comment, Post, User
 from .mixins import CommentEditMixin, PostsEditMixin, PostsQuerySetMixin
@@ -34,11 +33,8 @@ class PostUpdateView(PostsEditMixin, LoginRequiredMixin, UpdateView):
 
     def dispatch(self, request, *args, **kwargs):
         post = get_object_or_404(Post, pk=self.kwargs["pk"])
-
-        # Разрешить доступ только автору, даже если пост не опубликован
         if self.request.user != post.author:
             return redirect("blog:post_detail", pk=self.kwargs["pk"])
-
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -86,15 +82,16 @@ class CommentUpdateView(CommentEditMixin, LoginRequiredMixin, UpdateView):
     form_class = CreateCommentForm
 
     def dispatch(self, request, *args, **kwargs):
-        try:
-            comment = Comment.objects.get(pk=self.kwargs["comment_pk"])
-        except Comment.DoesNotExist:
-            raise Http404("Комментарий не существует.")
-
-        if self.request.user != comment.author:
+        if (
+            self.request.user
+            != Comment.objects.get(pk=self.kwargs["comment_pk"]).author
+        ):
             return redirect("blog:post_detail", pk=self.kwargs["pk"])
 
         return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        return reverse("blog:post_detail", kwargs={"pk": self.kwargs["pk"]})
 
 
 class AuthorProfileListView(PostsQuerySetMixin, ListView):
@@ -167,10 +164,19 @@ class PostDetailView(PostsQuerySetMixin, DetailView):
     model = Post
     template_name = "blog/detail.html"
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["form"] = CreateCommentForm()
+        context["comments"] = (
+            self.get_object().comments.prefetch_related("author").all()
+        )
+        return context
+
     def get_queryset(self):
-        post = super().get_queryset()
-        if self.request.user.is_authenticated:
-            return post.filter(
-                Q(is_published=True) | Q(author=self.request.user)
+        return (
+            super()
+            .get_queryset()
+            .prefetch_related(
+                "comments",
             )
-        return post.filter(is_published=True)
+        )
