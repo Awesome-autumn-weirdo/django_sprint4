@@ -3,7 +3,6 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.db.models import Count
-from django.db.models import Q
 from django.views.generic import (
     CreateView,
     DeleteView,
@@ -28,7 +27,9 @@ class PostDeleteView(PostsEditMixin, LoginRequiredMixin, DeleteView):
             return redirect("blog:index")
 
         if not post.is_published:
-            return redirect("blog:profile", username=self.request.user.username)  # Перенаправление к профилю
+            def get_success_url(self) -> str:
+                username = self.request.user.username
+                return redirect("blog:profile", username=username)
 
         return super().delete(request, *args, **kwargs)
 
