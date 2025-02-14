@@ -14,7 +14,6 @@ from django.http import HttpResponse
 from django.utils import timezone
 
 from adapters.post import PostModelAdapter
-from blog.models import Post
 from conftest import (
     _TestModelAttrs,
     KeyVal,
@@ -50,7 +49,7 @@ from test_edit import _test_edit
 class TestPostModelAttrs(_TestModelAttrs):
     @pytest.fixture(autouse=True)
     def _set_model(self):
-        self._model = PostModelAdapter(Post)
+        self._model = PostModelAdapter(PostFormTester)
 
     @property
     def model(self):
@@ -143,7 +142,7 @@ def test_post(
                 err_msg=delete_tester.nonexistent_obj_error_message
             ),
         ).test_submit(url=del_url_addr, data={})
-    except Post.DoesNotExist:
+    except PostFormTester.DoesNotExist:
         raise AssertionError(del_unexisting_status_404_err_msg)
 
     err_msg_unexisting_status_404 = (
@@ -154,7 +153,7 @@ def test_post(
         response = user_client.get(f"/posts/{item_to_delete_adapter.id}/")
         assert response.status_code == HTTPStatus.NOT_FOUND, (
             err_msg_unexisting_status_404)
-    except Post.DoesNotExist:
+    except PostFormTester.DoesNotExist:
         raise AssertionError(err_msg_unexisting_status_404)
 
     edit_status_code_not_404_err_msg = (
@@ -163,7 +162,7 @@ def test_post(
     )
     try:
         response = user_client.get(edit_url[0])
-    except Post.DoesNotExist:
+    except PostFormTester.DoesNotExist:
         raise AssertionError(edit_status_code_not_404_err_msg)
 
     assert response.status_code == HTTPStatus.NOT_FOUND, (
