@@ -187,8 +187,12 @@ class PostDetailView(PostsQuerySetMixin, DetailView):
 
     def get_queryset(self):
         queryset = super().get_queryset().prefetch_related("comments")
+
         if self.request.user.is_authenticated:
+            # Автор видит и опубликованные, и неопубликованные посты
             return queryset.filter(
                 Q(is_published=True) | Q(author=self.request.user)
             )
+
+        # Анонимный пользователь видит только опубликованные посты
         return queryset.filter(is_published=True)
