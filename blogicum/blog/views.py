@@ -193,4 +193,3 @@ class PostDetailView(PostsQuerySetMixin, DetailView):
                 | models.Q(author=self.request.user)
             )
         return queryset.filter(is_published=True)
-
