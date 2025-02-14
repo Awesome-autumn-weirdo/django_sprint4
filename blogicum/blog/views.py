@@ -3,6 +3,7 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.db.models import Count
+from django.db.models import Q
 from django.views.generic import (
     CreateView,
     DeleteView,
@@ -189,7 +190,7 @@ class PostDetailView(PostsQuerySetMixin, DetailView):
         queryset = super().get_queryset().prefetch_related("comments")
         if self.request.user.is_authenticated:
             return queryset.filter(
-                models.Q(is_published=True)
-                | models.Q(author=self.request.user)
+                Q(is_published=True) | Q(author=self.request.user)
             )
         return queryset.filter(is_published=True)
+
