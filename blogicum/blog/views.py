@@ -9,6 +9,7 @@ from django.views.generic import (
     ListView,
     UpdateView,
 )
+from django.http import Http404
 from django.db.models import Q
 from .forms import CreateCommentForm, CreatePostForm
 from .models import Category, Comment, Post, User
@@ -79,9 +80,6 @@ class CommentDeleteView(CommentEditMixin, LoginRequiredMixin, DeleteView):
         if self.request.user != comment.author:
             return redirect("blog:post_detail", pk=self.kwargs["pk"])
         return super().delete(request, *args, **kwargs)
-
-
-from django.http import Http404
 
 
 class CommentUpdateView(CommentEditMixin, LoginRequiredMixin, UpdateView):
