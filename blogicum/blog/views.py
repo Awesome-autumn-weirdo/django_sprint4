@@ -1,7 +1,9 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
 from django.db.models import Count
+from django.db.models import Q
 from django.views.generic import (
     CreateView,
     DeleteView,
@@ -9,8 +11,7 @@ from django.views.generic import (
     ListView,
     UpdateView,
 )
-from django.http import Http404
-from django.db.models import Q
+
 from .forms import CreateCommentForm, CreatePostForm
 from .models import Category, Comment, Post, User
 from .mixins import CommentEditMixin, PostsEditMixin, PostsQuerySetMixin
@@ -26,6 +27,9 @@ class PostDeleteView(PostsEditMixin, LoginRequiredMixin, DeleteView):
         if self.request.user != post.author:
             return redirect("blog:index")
 
+        if not post.is_published and self.request.user != post.author:
+            raise Http404("Post not found or already removed.")
+
         return super().delete(request, *args, **kwargs)
 
 
@@ -34,10 +38,12 @@ class PostUpdateView(PostsEditMixin, LoginRequiredMixin, UpdateView):
 
     def dispatch(self, request, *args, **kwargs):
         post = get_object_or_404(Post, pk=self.kwargs["pk"])
-
-        # Разрешить доступ только автору, даже если пост не опубликован
         if self.request.user != post.author:
             return redirect("blog:post_detail", pk=self.kwargs["pk"])
+
+        # Исправление: если пост не опубликован, доступ только у автора
+        if not post.is_published and self.request.user != post.author:
+            raise Http404("Post not found or already removed.")
 
         return super().dispatch(request, *args, **kwargs)
 
@@ -72,11 +78,18 @@ class CommentCreateView(LoginRequiredMixin, CreateView):
 
 
 class CommentDeleteView(CommentEditMixin, LoginRequiredMixin, DeleteView):
+    def get_object(self, queryset=None):
+        """Проверяет, существует ли комментарий. Если нет – выбрасывает 404."""
+        comment = get_object_or_404(Comment, pk=self.kwargs["comment_pk"])
+        if not comment:
+            raise Http404("Комментарий не найден или уже удалён.")
+        return comment
+
     def get_success_url(self):
         return reverse("blog:post_detail", kwargs={"pk": self.kwargs["pk"]})
 
     def delete(self, request, *args, **kwargs):
-        comment = get_object_or_404(Comment, pk=self.kwargs["comment_pk"])
+        comment = self.get_object()
         if self.request.user != comment.author:
             return redirect("blog:post_detail", pk=self.kwargs["pk"])
         return super().delete(request, *args, **kwargs)
@@ -85,16 +98,21 @@ class CommentDeleteView(CommentEditMixin, LoginRequiredMixin, DeleteView):
 class CommentUpdateView(CommentEditMixin, LoginRequiredMixin, UpdateView):
     form_class = CreateCommentForm
 
-    def dispatch(self, request, *args, **kwargs):
-        try:
-            comment = Comment.objects.get(pk=self.kwargs["comment_pk"])
-        except Comment.DoesNotExist:
-            raise Http404("Комментарий не существует.")
+    def get_object(self, queryset=None):
+        """Проверяет, существует ли комментарий. Если нет – выбрасывает 404."""
+        comment = get_object_or_404(Comment, pk=self.kwargs["comment_pk"])
+        if not comment:
+            raise Http404("Комментарий не найден или уже удалён.")
+        return comment
 
+    def dispatch(self, request, *args, **kwargs):
+        comment = self.get_object()
         if self.request.user != comment.author:
             return redirect("blog:post_detail", pk=self.kwargs["pk"])
-
         return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        return reverse("blog:post_detail", kwargs={"pk": self.kwargs["pk"]})
 
 
 class AuthorProfileListView(PostsQuerySetMixin, ListView):
@@ -167,10 +185,20 @@ class PostDetailView(PostsQuerySetMixin, DetailView):
     model = Post
     template_name = "blog/detail.html"
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["form"] = CreateCommentForm()
+        context["comments"] = (
+            self.get_object().comments.prefetch_related("author").all()
+        )
+        return context
+
     def get_queryset(self):
-        post = super().get_queryset()
+        queryset = super().get_queryset().prefetch_related("comments")
+
         if self.request.user.is_authenticated:
-            return post.filter(
+            return queryset.filter(
                 Q(is_published=True) | Q(author=self.request.user)
             )
-        return post.filter(is_published=True)
+
+        return queryset.filter(is_published=True)
