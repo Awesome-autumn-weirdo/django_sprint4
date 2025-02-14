@@ -27,6 +27,10 @@ class PostDeleteView(PostsEditMixin, LoginRequiredMixin, DeleteView):
         if self.request.user != post.author:
             return redirect("blog:index")
 
+        # Ensure only the author can delete the post, even if unpublished
+        if not post.is_published and self.request.user != post.author:
+            raise Http404("Post not found or already removed.")
+
         return super().delete(request, *args, **kwargs)
 
 
@@ -37,6 +41,11 @@ class PostUpdateView(PostsEditMixin, LoginRequiredMixin, UpdateView):
         post = get_object_or_404(Post, pk=self.kwargs["pk"])
         if self.request.user != post.author:
             return redirect("blog:post_detail", pk=self.kwargs["pk"])
+
+        # Allow the author to update even unpublished posts
+        if not post.is_published and self.request.user != post.author:
+            raise Http404("Post not found or already removed.")
+
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -189,10 +198,10 @@ class PostDetailView(PostsQuerySetMixin, DetailView):
         queryset = super().get_queryset().prefetch_related("comments")
 
         if self.request.user.is_authenticated:
-            # Автор видит и опубликованные, и неопубликованные посты
+            # The author can see both published and unpublished posts
             return queryset.filter(
                 Q(is_published=True) | Q(author=self.request.user)
             )
 
-        # Анонимный пользователь видит только опубликованные посты
+        # Non-authenticated users see only published posts
         return queryset.filter(is_published=True)
