@@ -190,3 +190,4 @@ class PostDetailView(PostsQuerySetMixin, DetailView):
         if self.request.user.is_authenticated:
             return queryset.filter(models.Q(is_published=True) | models.Q(author=self.request.user))
         return queryset.filter(is_published=True)
+
