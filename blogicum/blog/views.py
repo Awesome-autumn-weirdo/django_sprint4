@@ -12,7 +12,6 @@ from django.views.generic import (
     UpdateView,
 )
 
-from . import models
 from .forms import CreateCommentForm, CreatePostForm
 from .models import Category, Comment, Post, User
 from .mixins import CommentEditMixin, PostsEditMixin, PostsQuerySetMixin
@@ -193,4 +192,3 @@ class PostDetailView(PostsQuerySetMixin, DetailView):
                 Q(is_published=True) | Q(author=self.request.user)
             )
         return queryset.filter(is_published=True)
-
