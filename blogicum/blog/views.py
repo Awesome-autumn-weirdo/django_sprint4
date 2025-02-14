@@ -189,7 +189,8 @@ class PostDetailView(PostsQuerySetMixin, DetailView):
         queryset = super().get_queryset().prefetch_related("comments")
         if self.request.user.is_authenticated:
             return queryset.filter(
-                models.Q(is_published=True) |
-                models.Q(author=self.request.user)
+                models.Q(is_published=True)
+                | models.Q(author=self.request.user)
             )
         return queryset.filter(is_published=True)
+
