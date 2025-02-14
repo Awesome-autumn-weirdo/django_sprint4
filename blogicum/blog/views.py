@@ -27,7 +27,6 @@ class PostDeleteView(PostsEditMixin, LoginRequiredMixin, DeleteView):
         if self.request.user != post.author:
             return redirect("blog:index")
 
-        # Ensure only the author can delete the post, even if unpublished
         if not post.is_published and self.request.user != post.author:
             raise Http404("Post not found or already removed.")
 
@@ -42,7 +41,6 @@ class PostUpdateView(PostsEditMixin, LoginRequiredMixin, UpdateView):
         if self.request.user != post.author:
             return redirect("blog:post_detail", pk=self.kwargs["pk"])
 
-        # Allow the author to update even unpublished posts
         if not post.is_published and self.request.user != post.author:
             raise Http404("Post not found or already removed.")
 
