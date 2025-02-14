@@ -214,6 +214,17 @@ def test_post(
 
     detail_post_adapter = PostModelAdapter(created_items[0])
 
+    with set_post_unpublished(detail_post_adapter):
+        check_post_access(
+            user_client, detail_post_adapter,
+            "Убедитесь, что страница поста, снятого с публикации, "
+            "доступна автору этого поста.",
+            expected_status=HTTPStatus.OK)
+        check_post_access(
+            another_user_client, detail_post_adapter,
+            "Убедитесь, что страница поста, снятого с публикации, "
+            "доступна только автору этого поста.",
+            expected_status=HTTPStatus.NOT_FOUND)
 
     with set_post_category_unpublished(detail_post_adapter):
         check_post_access(
