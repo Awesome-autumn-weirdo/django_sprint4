@@ -4,7 +4,7 @@ from typing import Type
 from django.db import models
 from django.db.models import Model
 
-from adapters.student_adapter import StudentModelAdapter
+from tests.adapters.student_adapter import StudentModelAdapter
 
 
 class PostModelAdapter(StudentModelAdapter):
@@ -49,7 +49,7 @@ class PostModelAdapter(StudentModelAdapter):
 
     @property
     def ItemModel(self) -> Type[Model]:
-        from blog.models import Post
+        from blogicum.blog.models import Post
 
         return Post
 
