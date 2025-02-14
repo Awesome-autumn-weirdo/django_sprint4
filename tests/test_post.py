@@ -193,37 +193,33 @@ def test_post(
             category.save()
 
     @contextmanager
-    def set_post_postponed(post_adapter):
-        pub_date = post_adapter.pub_date
-        current_date = timezone.now()
+    def set_post_unpublished(post_adapter):
+        is_published = post_adapter.is_published
         try:
-            post_adapter.pub_date = post_adapter.pub_date.replace(
-                year=current_date.year + 1,
-                day=current_date.day - 1 or current_date.day)
+            post_adapter.is_published = False
             post_adapter.save()
             yield
         finally:
-            post_adapter.pub_date = pub_date
+            post_adapter.is_published = is_published
             post_adapter.save()
 
     def check_post_access(client, post_adapter, err_msg, expected_status):
         url = f"/posts/{post_adapter.id}/"
-        get_get_response_safely(client, url=url, err_msg=err_msg,
-                                expected_status=expected_status)
+        response = get_get_response_safely(client, url=url, err_msg=err_msg)
+        assert response.status_code == expected_status, err_msg
 
     # Checking unpublished post
-
     detail_post_adapter = PostModelAdapter(created_items[0])
 
     with set_post_unpublished(detail_post_adapter):
         check_post_access(
             user_client, detail_post_adapter,
-            "Убедитесь, что страница поста, снятого с публикации, "
+            "Убедитесь, что страница поста, снятого с публикации,"
             "доступна автору этого поста.",
             expected_status=HTTPStatus.OK)
         check_post_access(
             another_user_client, detail_post_adapter,
-            "Убедитесь, что страница поста, снятого с публикации, "
+            "Убедитесь, что страница поста, снятого с публикации,"
             "доступна только автору этого поста.",
             expected_status=HTTPStatus.NOT_FOUND)
 
