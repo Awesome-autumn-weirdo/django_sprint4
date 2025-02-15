@@ -1,50 +1,61 @@
 from django.contrib import admin
+from django.contrib.auth import admin as user_admin
 
-from .models import Category, Location, Post, Comment
-
-
-class LocationAdmin(admin.ModelAdmin):
-    list_display = (
-        "name",
-        "is_published",
-        "created_at",
-    )
-    list_editable = ("is_published",)
+from .models import Category, Location, Post
 
 
-class CategoryAdmin(admin.ModelAdmin):
-    list_display = (
-        "title",
-        "description",
-        "slug",
-        "is_published",
-        "created_at",
-    )
-    list_editable = ("is_published",)
+admin.site.empty_value_display = 'Пусто'
 
 
+@admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
-    list_display = (
-        "title",
-        "author",
-        "category",
-        "location",
-        "is_published",
-        "pub_date",
-        "comment_count",
-    )
-    list_editable = ("is_published",)
-    list_filter = (
-        "category",
-        "location",
-    )
+    list_display = [
+        'title',
+        'is_published',
+        'created_at',
+        'pub_date',
+        'category'
+    ]
+    list_editable = [
+        'is_published',
+        'pub_date'
+    ]
+    list_filter = [
+        'is_published',
+        'pub_date',
+        'location',
+        'category'
+    ]
 
-    @admin.display(description="Комментариев")
-    def comment_count(self, post):
-        return post.comments.count()
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = [
+        'title',
+        'is_published',
+        'created_at'
+    ]
+    list_editable = ['is_published']
+    list_filter = ['is_published']
 
 
-admin.site.register(Post, PostAdmin)
-admin.site.register(Location, LocationAdmin)
-admin.site.register(Category, CategoryAdmin)
-admin.site.register(Comment)
+@admin.register(Location)
+class LocationAdmin(admin.ModelAdmin):
+    list_display = [
+        'name',
+        'is_published',
+        'created_at'
+    ]
+    list_editable = ['is_published']
+
+
+class UserAdmin(user_admin.UserAdmin):
+    list_display = [
+        'username',
+        'email',
+        'first_name',
+        'last_name',
+        'is_published',
+        'created_at'
+    ]
+    list_editable = ['is_published']

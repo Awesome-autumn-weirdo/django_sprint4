@@ -1,19 +1,19 @@
 def test_static_pages_as_cbv():
     try:
-        from blogicum.pages import urls
+        from pages import urls
     except Exception as e:
         raise AssertionError(
             "Убедитесь, что в файле `pages/urls.py` нет ошибок. При его"
             f" импорте возникла ошибка:\n{type(e).__name__}: {e}"
         )
     try:
-        from blogicum.pages.urls import urlpatterns
+        from pages.urls import urlpatterns
     except Exception:
         raise AssertionError(
             "Убедитесь, что в файле `pages/urls.py` задан список urlpatterns."
         )
     try:
-        from blogicum.pages.urls import app_name
+        from pages.urls import app_name
     except Exception:
         raise AssertionError(
             "Убедитесь, что в файле `pages/urls.py` определена глобальная"
